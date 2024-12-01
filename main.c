@@ -34,11 +34,28 @@ char Statements[][20] = {
     "WHILE",
     "ENDWHILE",
 };
+char DataTypes[][10] = {
+    "STRING",
+    "INTEGER",
+    "CHARACTER",
+    "BOOLEAN",
+    "REAL"
+};
 
 int IsStatement(char *string) {
     for (int i = 0; i < 9; i++) {
         
         if (strcmp(string, Statements[i]) == 0) {
+            return 1;
+        } else {return 0;}
+        
+    }
+    
+}
+
+int IsDataType(char *string) {
+    for (int i = 0; i < 5; i++) {
+        if (strcmp(string, DataTypes[i]) == 0) {
             return 1;
         } else {return 0;}
         
@@ -274,6 +291,7 @@ Variable ReturnVariable(char **line_spliited, int no_of_items) {
 
         if (IsVar(var.variable_name) == 1) {
             int count_doublequotes = CountCharacters(ConcatenateStrings(line_spliited, no_of_items, 3, no_of_items), '"');
+            int colons = CountCharacters(ConcatenateStrings(line_spliited, no_of_items, 3, no_of_items), ':');
 
             if (no_of_items >= 4) {
                 if (strcmp(line_spliited[2], "<-") == 0) {
@@ -385,10 +403,14 @@ Variable FindVariable(Variable *VariablesArray, int var_amount, char *var_to_sea
     }
 }
 
-int CheckType(char *data_str, int data_int, char *entered_type, char *type_to_check_against) {
-    if (type_to_check_against == "STRING") {
-        
-    }
+char *CheckAndReturnType(char *variable_with_colon) {
+    int c;
+    int w;
+    char **variable_and_colon_sep = Slice(variable_with_colon, ":", &c, &w);
+
+    if (IsDataType(variable_and_colon_sep[1]) == 1) {
+        return variable_and_colon_sep[1];
+    } else {return "TYPE_NOT_FOUND_ERROR_404";}
     
 }
 
@@ -425,10 +447,6 @@ int IsConditionTrue(char *value_1, char *value_2, char *operator) {
     } else {
         return 10;
     }
-}
-
-void Output(char *string_to_output) {
-    printf("%s\n", string_to_output);
 }
 
 char *slice(const char* str, size_t start, size_t end) {
@@ -507,7 +525,7 @@ int main(int argc, char **argv) {
 
             if (IsVar(line[1]) == 1) {
                 Variable input_var = FindVariable(VARIABLES, variable_amount, line[1]);
-                if (strcmp(input_var.variable_name, "VAR_NOT_FOUND_ERROR_404") == 1) {
+                if (strcmp(input_var.variable_name, "VAR_NOT_FOUND_ERROR_404") != 0) {
                     fgets(input_buffer, sizeof(input_buffer), stdin);
                     
                     input_var.variable_data = input_buffer;
@@ -558,11 +576,12 @@ int main(int argc, char **argv) {
             int is_to_output_a_var = IsVar(to_output);
             if (is_to_output_a_var == 1) {
                 Variable to_output_var = FindVariable(VARIABLES, variable_amount, to_output);
-
-                if (to_output_var.variable_data == "") {
-                    printf("%d\n", to_output_var.variable_data_int);
-                } else {
-                    printf("%s\n", to_output_var.variable_data);
+                if (strcmp(to_output_var.variable_data, "VAR_NOT_FOUND_ERROR_404") != 0) {
+                    if (to_output_var.variable_data == "") {
+                        printf("%d\n", to_output_var.variable_data_int);
+                    } else {
+                        printf("%s\n", to_output_var.variable_data);
+                    }
                 }
                 
             } else
