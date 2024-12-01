@@ -12,15 +12,11 @@ typedef struct Variable {
 } Variable;
 
 typedef struct IfStatement {
-    char *var_to_check_1;
-    char *var_to_check_2;
-    char *conditional_operator;
-
-    char if_or_elseif;
-
-    char *main_if_block;
-    char *else_if_block;
+    int no_of_conditions;
+    char **conditions;
+    char **code_block;
 } IfStatement;
+
 
 int current_line_number = 1;
 char Statements[][20] = {
@@ -470,6 +466,91 @@ void UpdateVariableInList(Variable *variables_array, int var_amount, char *name_
     
 }
 
+void PROCESS(char **line, int line_items, Variable *VARIABLES, int *variable_amount) {
+    if (strcmp(line[0], "DECLARE") == 0) {
+            // adding variables to the VARIABLES array
+            Variable v = ReturnVariable(line, line_items);
+            VARIABLES[*variable_amount] = v;
+            (*variable_amount)++;
+        } else
+    if (IsVar(line[0]) == 1 && IsStatement(line[0]) == 0) {
+
+            if (strcmp(line[1], "<-") == 0) {
+                Variable to_change = FindVariable(VARIABLES, variable_amount, line[0]);
+                
+                if (strcmp(to_change.variable_name, "VAR_NOT_FOUND_ERROR_404") == 1) {
+                    Variable changed = ReturnVariable(line, line_items);
+
+                    UpdateVariableInList(VARIABLES, variable_amount, changed.variable_name, changed);
+                }
+                
+            }
+            
+        } else
+    if (strcmp(line[0], "INPUT") == 0) {
+            char input_buffer[1024];
+
+            if (IsVar(line[1]) == 1) {
+                Variable input_var = FindVariable(VARIABLES, *variable_amount, line[1]);
+                if (strcmp(input_var.variable_name, "VAR_NOT_FOUND_ERROR_404") != 0) {
+                    fgets(input_buffer, sizeof(input_buffer), stdin);
+                    
+                    input_var.variable_data = input_buffer;
+                    input_var.variable_type = "STRING";
+
+                    UpdateVariableInList(VARIABLES, *variable_amount, line[1], input_var);
+                } else {printf("Assigned variable %s to INPUT on line %d was not found\n", input_var.variable_name, current_line_number); exit(1);}
+            } else
+            if (ValidateString(ConcatenateStrings(line, line_items, 1, line_items-1)) != "NOT_A_STRING_404") {
+
+                if (IsVar(line[line_items-1]) == 1) {
+                    Variable input_var = FindVariable(VARIABLES, *variable_amount, line[line_items-1]);
+                    
+
+                    char *string_to_output_for_input = ConcatenateStrings(line, line_items, 1, line_items-1);
+                    RemoveFirstAndLast(string_to_output_for_input);
+
+                    printf("%s\n", string_to_output_for_input);
+                    fgets(input_buffer, sizeof(input_buffer), stdin);
+
+                    input_var.variable_data = input_buffer;
+                    input_var.variable_type = "STRING";
+
+                    
+                    UpdateVariableInList(VARIABLES, *variable_amount, input_var.variable_name, input_var);
+                }
+            }
+            
+        } else
+    if (strcmp(line[0], "OUTPUT") == 0) {
+            // outputting either the variable value or the supplied data
+
+            char *to_output = ConcatenateStrings(line, line_items, 1, line_items);
+            int is_to_output_a_var = IsVar(to_output);
+            if (is_to_output_a_var == 1) {
+                Variable to_output_var = FindVariable(VARIABLES, *variable_amount, to_output);
+                if (strcmp(to_output_var.variable_data, "VAR_NOT_FOUND_ERROR_404") != 0) {
+                    if (to_output_var.variable_data == "") {
+                        printf("%d", to_output_var.variable_data_int);
+                    } else {
+                        printf("%s", to_output_var.variable_data);
+                    }
+                }
+                
+            } else
+            if (ValidateInt(to_output) != -69) {
+                printf("%s\n", to_output);
+            } else
+            if (ValidateBool(to_output) != "NOT_A_BOOL_404") {
+                printf("%s\n", to_output);
+            } else 
+            if (ValidateString(to_output) != "NOT_A_STRING_404") {
+                RemoveFirstAndLast(to_output);
+                printf("%s\n", to_output);  
+            } else {printf("Error. %s is not a valid data type or a declared variable on line %d\n", to_output, current_line_number); exit(1);}
+        
+        }
+}
 
 
 int main(int argc, char **argv) {
@@ -514,91 +595,8 @@ int main(int argc, char **argv) {
 
         char **line = Slice(sliced[i], " ", &line_c, &line_items);
 
-        if (strcmp(line[0], "DECLARE") == 0) {
-            // adding variables to the VARIABLES array
-            Variable v = ReturnVariable(line, line_items);
-            VARIABLES[variable_amount] = v;
-            variable_amount++;
-        } else
-        if (strcmp(line[0], "INPUT") == 0) {
-            char input_buffer[1024];
-
-            if (IsVar(line[1]) == 1) {
-                Variable input_var = FindVariable(VARIABLES, variable_amount, line[1]);
-                if (strcmp(input_var.variable_name, "VAR_NOT_FOUND_ERROR_404") != 0) {
-                    fgets(input_buffer, sizeof(input_buffer), stdin);
-                    
-                    input_var.variable_data = input_buffer;
-                    input_var.variable_type = "STRING";
-
-                    UpdateVariableInList(VARIABLES, variable_amount, line[1], input_var);
-                } else {printf("Assigned variable %s to INPUT on line %d was not found\n", input_var.variable_name, current_line_number); return 1;}
-            } else
-            if (ValidateString(ConcatenateStrings(line, line_items, 1, line_items-1)) != "NOT_A_STRING_404") {
-
-                if (IsVar(line[line_items-1]) == 1) {
-                    Variable input_var = FindVariable(VARIABLES, variable_amount, line[line_items-1]);
-                    
-
-                    char *string_to_output_for_input = ConcatenateStrings(line, line_items, 1, line_items-1);
-                    RemoveFirstAndLast(string_to_output_for_input);
-
-                    printf("%s\n", string_to_output_for_input);
-                    fgets(input_buffer, sizeof(input_buffer), stdin);
-
-                    input_var.variable_data = input_buffer;
-                    input_var.variable_type = "STRING";
-
-                    
-                    UpdateVariableInList(VARIABLES, variable_amount, input_var.variable_name, input_var);
-                }
-            }
-            
-        } else
-        if (IsVar(line[0]) == 1 && IsStatement(line[0]) == 0) {
-
-            if (strcmp(line[1], "<-") == 0) {
-                Variable to_change = FindVariable(VARIABLES, variable_amount, line[0]);
-                
-                if (strcmp(to_change.variable_name, "VAR_NOT_FOUND_ERROR_404") == 1) {
-                    Variable changed = ReturnVariable(line, line_items);
-
-                    UpdateVariableInList(VARIABLES, variable_amount, changed.variable_name, changed);
-                }
-                
-            }
-            
-        } else
-        if (strcmp(line[0], "OUTPUT") == 0) {
-            // outputting either the variable value or the supplied data
-
-            char *to_output = ConcatenateStrings(line, line_items, 1, line_items);
-            int is_to_output_a_var = IsVar(to_output);
-            if (is_to_output_a_var == 1) {
-                Variable to_output_var = FindVariable(VARIABLES, variable_amount, to_output);
-                if (strcmp(to_output_var.variable_data, "VAR_NOT_FOUND_ERROR_404") != 0) {
-                    if (to_output_var.variable_data == "") {
-                        printf("%d\n", to_output_var.variable_data_int);
-                    } else {
-                        printf("%s\n", to_output_var.variable_data);
-                    }
-                }
-                
-            } else
-            if (ValidateInt(to_output) != -69) {
-                printf("%s\n", to_output);
-            } else
-            if (ValidateBool(to_output) != "NOT_A_BOOL_404") {
-                printf("%s\n", to_output);
-            } else 
-            if (ValidateString(to_output) != "NOT_A_STRING_404") {
-                RemoveFirstAndLast(to_output);
-                printf("%s\n", to_output);  
-            } else {printf("Error. %s is not a valid data type or a declared variable on line %d\n", to_output, current_line_number); return 1;}
-        
-        } else {printf("Invalid pseudocode statement '%s' on line %d\n", line[0], current_line_number); return 1;}
-        
-        
+        PROCESS(line, line_items, VARIABLES, &variable_amount);
+    
         
     }
 
