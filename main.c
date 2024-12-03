@@ -466,27 +466,43 @@ void UpdateVariableInList(Variable *variables_array, int var_amount, char *name_
     
 }
 
-void PROCESS(char **line, int line_items, Variable *VARIABLES, int *variable_amount) {
-    if (strcmp(line[0], "DECLARE") == 0) {
-            // adding variables to the VARIABLES array
-            Variable v = ReturnVariable(line, line_items);
-            VARIABLES[*variable_amount] = v;
-            (*variable_amount)++;
-        } else
-    if (IsVar(line[0]) == 1 && IsStatement(line[0]) == 0) {
+char *GetCondition(char *condition_string) {
+    int c;
+    int itms;
+    if (strstr(condition_string, "=")) {
+        
+        char **splitted = Slice(condition_string, "=", &c, &itms);
+        
+        if (itms != 2) {
+            printf("Invalid condition on line %d\n", current_line_number);
+        }
+        
+        
+    }
+    
+    
+}
 
-            if (strcmp(line[1], "<-") == 0) {
-                Variable to_change = FindVariable(VARIABLES, variable_amount, line[0]);
-                
-                if (strcmp(to_change.variable_name, "VAR_NOT_FOUND_ERROR_404") == 1) {
-                    Variable changed = ReturnVariable(line, line_items);
+char **ReturnConditions(char **line, int line_items) {
+    char result;
 
-                    UpdateVariableInList(VARIABLES, variable_amount, changed.variable_name, changed);
-                }
-                
-            }
+    for (int i = 0; i < line_items; i++) {
+        if (strcmp(line[i], "AND") == 0) {
             
-        } else
+        }
+        
+    }
+    
+}
+
+void PROCESS(char **line, int line_items, Variable *VARIABLES, int *variable_amount) {
+    if (strcmp(line[0], "IF") == 0) {
+        printf("if\n");
+        if (strcmp(line[line_items-1], "THEN") == 0) {
+            
+        } else {printf("THEN statement not found on line %d\n", current_line_number); exit(1);}
+        
+    } else
     if (strcmp(line[0], "INPUT") == 0) {
             char input_buffer[1024];
 
@@ -522,6 +538,26 @@ void PROCESS(char **line, int line_items, Variable *VARIABLES, int *variable_amo
             }
             
         } else
+    if (strcmp(line[0], "DECLARE") == 0) {
+            // adding variables to the VARIABLES array
+            Variable v = ReturnVariable(line, line_items);
+            VARIABLES[*variable_amount] = v;
+            (*variable_amount)++;
+        } else
+    if (IsVar(line[0]) == 1 && IsStatement(line[0]) == 0) {
+
+            if (strcmp(line[1], "<-") == 0) {
+                Variable to_change = FindVariable(VARIABLES, *variable_amount, line[0]);
+                
+                if (strcmp(to_change.variable_name, "VAR_NOT_FOUND_ERROR_404") == 1) {
+                    Variable changed = ReturnVariable(line, line_items);
+
+                    UpdateVariableInList(VARIABLES, *variable_amount, changed.variable_name, changed);
+                }
+                
+            }
+            
+        } else
     if (strcmp(line[0], "OUTPUT") == 0) {
             // outputting either the variable value or the supplied data
 
@@ -549,7 +585,8 @@ void PROCESS(char **line, int line_items, Variable *VARIABLES, int *variable_amo
                 printf("%s\n", to_output);  
             } else {printf("Error. %s is not a valid data type or a declared variable on line %d\n", to_output, current_line_number); exit(1);}
         
-        }
+        } 
+   
 }
 
 
@@ -595,7 +632,8 @@ int main(int argc, char **argv) {
 
         char **line = Slice(sliced[i], " ", &line_c, &line_items);
 
-        PROCESS(line, line_items, VARIABLES, &variable_amount);
+        //PROCESS(line, line_items, VARIABLES, &variable_amount);
+        GetCondition("=47");
     
         
     }
