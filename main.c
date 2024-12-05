@@ -466,7 +466,7 @@ void UpdateVariableInList(Variable *variables_array, int var_amount, char *name_
     
 }
 
-char *GetCondition(char *condition_string) {
+char GetCondition(char *condition_string) {
     int c;
     int itms;
     if (strstr(condition_string, "=")) {
@@ -475,31 +475,52 @@ char *GetCondition(char *condition_string) {
         
         if (itms != 2) {
             printf("Invalid condition on line %d\n", current_line_number);
+        } else {
+            if (ValidateString(splitted[0]) != "NOT_A_STRING_404" && ValidateString(splitted[1]) != "NOT_A_STRING_404") {
+                if (strcmp(splitted[0], splitted[1]) == 0) {
+                    return 't';
+                } else {return 'f';}
+                
+            }
+            
         }
-        
         
     }
     
     
 }
 
-char **ReturnConditions(char **line, int line_items) {
+char EvaluateConditions(char **line, int line_items) {
     char result;
 
     for (int i = 0; i < line_items; i++) {
         if (strcmp(line[i], "AND") == 0) {
             
+        } else {
+            result = GetCondition(line[i]);
+
+            return result;
         }
         
     }
     
 }
 
-void PROCESS(char **line, int line_items, Variable *VARIABLES, int *variable_amount) {
+
+void PROCESS(char **line, int line_items, Variable *VARIABLES, int *variable_amount, int no_of_lines) {
     if (strcmp(line[0], "IF") == 0) {
-        printf("if\n");
+        int if_start = current_line_number;
+        int if_end = 0;
+
         if (strcmp(line[line_items-1], "THEN") == 0) {
+            if (EvaluateConditions(line, line_items) == 't') {
+                // go over the code block till an ELSE is reached
+                
+            } else {
+                // search for an ELSE or ELSEIF
+            }
             
+
         } else {printf("THEN statement not found on line %d\n", current_line_number); exit(1);}
         
     } else
@@ -632,8 +653,8 @@ int main(int argc, char **argv) {
 
         char **line = Slice(sliced[i], " ", &line_c, &line_items);
 
-        //PROCESS(line, line_items, VARIABLES, &variable_amount);
-        GetCondition("=47");
+        PROCESS(line, line_items, VARIABLES, &variable_amount, lines);
+        
     
         
     }
