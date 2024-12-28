@@ -19,6 +19,7 @@ typedef struct IfStatement {
 
 
 int current_line_number = 1;
+int jump_to_line = 0;
 char Statements[][20] = {
     "OUTPUT",
     "INPUT",
@@ -469,15 +470,18 @@ void UpdateVariableInList(Variable *variables_array, int var_amount, char *name_
 char GetCondition(char *condition_string) {
     int c;
     int itms;
-    if (strstr(condition_string, "=")) {
-        
+    int imts;
+
+    if (strstr(condition_string, "=") != 0) {
         char **splitted = Slice(condition_string, "=", &c, &itms);
         
         if (itms != 2) {
             printf("Invalid condition on line %d\n", current_line_number);
         } else {
-            if (ValidateString(splitted[0]) != "NOT_A_STRING_404" && ValidateString(splitted[1]) != "NOT_A_STRING_404") {
-                if (strcmp(splitted[0], splitted[1]) == 0) {
+
+            if (ValidateString(Slice(splitted[0], " ", &c, &itms)[1]) != "NOT_A_STRING_404" && ValidateString(Slice(splitted[1], " ", &c, &imts)[0]) != "NOT_A_STRING_404") {
+
+                if (strcmp(Slice(splitted[0], " ", &c, &itms)[1], Slice(splitted[1], " ", &c, &imts)[0]) == 0) {
                     return 't';
                 } else {return 'f';}
                 
@@ -497,7 +501,8 @@ char EvaluateConditions(char **line, int line_items) {
         if (strcmp(line[i], "AND") == 0) {
             
         } else {
-            result = GetCondition(line[i]);
+            char *concatenated = ConcatenateStrings(line, line_items, 0, line_items);
+            result = GetCondition(concatenated);
 
             return result;
         }
@@ -507,19 +512,75 @@ char EvaluateConditions(char **line, int line_items) {
 }
 
 
-void PROCESS(char **line, int line_items, Variable *VARIABLES, int *variable_amount, int no_of_lines) {
+void PROCESS(char **line, int line_items, Variable *VARIABLES, int *variable_amount, int no_of_lines, char** all_the_lines) {
+
+    if (strcmp(line[0], "") == 0) {
+    } else
     if (strcmp(line[0], "IF") == 0) {
+
         int if_start = current_line_number;
+        int else_start = 0;
         int if_end = 0;
 
+        int ignore = 0;
+
         if (strcmp(line[line_items-1], "THEN") == 0) {
+
             if (EvaluateConditions(line, line_items) == 't') {
-                // go over the code block till an ELSE is reached
+                
+                for (size_t i = if_start+1; i < no_of_lines; i++) {
+                    int c;
+                    int it;
+                    char **if_block_line = Slice(all_the_lines[i], " ", &c, &it);
+                    if (!ignore) {
+                        
+                        if (strcmp(if_block_line[0], "ENDIF") == 0) {
+                            
+                            if_end = i+1;
+                            break;
+                        } else if (strcmp(if_block_line[0], "ELSE") == 0) {
+                            
+                            ignore = 1;
+                        } else if (strcmp(if_block_line[0], "DECLARE") == 0) {
+                            printf("DECLARE not allowed in IF block on line %d\n", i);
+                        } else {PROCESS(if_block_line, it, VARIABLES, variable_amount, no_of_lines, all_the_lines);}
+                        
+                    } else {
+                        if (strcmp(if_block_line[0], "ENDIF") == 0) {
+                            
+                            if_end = i+1;
+                            break;
+                        }
+                        
+                    }
+                }
+
+                jump_to_line = if_end;
                 
             } else {
-                // search for an ELSE or ELSEIF
+                int else_found = 0;
+                int i = if_start + 1;
+
+                while (i < no_of_lines && !else_found) {
+                    
+                    int c;
+                    int it;
+                    char **else_block_line = Slice(all_the_lines[i], " ", &c, &it);
+                    
+                    if (strcmp(else_block_line[0], "ELSE") == 0) {
+                        else_found = 1;
+
+                        for (size_t x = i; x < no_of_lines; x++) {
+                            
+                            
+                        }
+                        
+                    }
+                    
+                }
+                
+                
             }
-            
 
         } else {printf("THEN statement not found on line %d\n", current_line_number); exit(1);}
         
@@ -606,7 +667,7 @@ void PROCESS(char **line, int line_items, Variable *VARIABLES, int *variable_amo
                 printf("%s\n", to_output);  
             } else {printf("Error. %s is not a valid data type or a declared variable on line %d\n", to_output, current_line_number); exit(1);}
         
-        } 
+        } else {printf("%s is not a valid statement on line %d\n", line[0], current_line_number); exit(1);}
    
 }
 
@@ -622,7 +683,6 @@ int main(int argc, char **argv) {
         
         return 1;
     }
-    
 
     // convert file to string
     int len_of_file = 0;
@@ -642,21 +702,33 @@ int main(int argc, char **argv) {
     free(file_contents);
 
     // holding all the variables
-    Variable VARIABLES[sizeof(Variable) * lines];
+    Variable *VARIABLES = malloc(sizeof(Variable) * lines);
     int variable_amount = 0;
 
-    for (int i = 0; i < lines; i++) {
+    for (int i = 0; i < lines;) {
         int line_c;
         int line_items;
 
-        current_line_number = i+1;
+        current_line_number = i;
 
-        char **line = Slice(sliced[i], " ", &line_c, &line_items);
+        if (jump_to_line != 0) {
+            current_line_number = jump_to_line;
+            
+            if (current_line_number >= lines) {
+                return 0;
+            }
+            
+            jump_to_line = 0;
+        }
+        
 
-        PROCESS(line, line_items, VARIABLES, &variable_amount, lines);
+        char **line = Slice(sliced[current_line_number], " ", &line_c, &line_items);
+
+        PROCESS(line, line_items, VARIABLES, &variable_amount, lines, sliced);
         
     
-        
+        current_line_number++;
+        i = current_line_number;
     }
 
     return 0;
